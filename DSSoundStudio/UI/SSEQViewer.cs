@@ -21,6 +21,8 @@ namespace DSSoundStudio.UI
 		public SSEQViewer(SDAT SoundArchive, int SeqIdx)
 		{
 			this.SoundArchive = SoundArchive;
+			this.SeqIdx = SeqIdx;
+
 			SeqInfo = SoundArchive.InfoBlock.SequenceInfos[SeqIdx];
 			Sequence = new SSEQ(SoundArchive.GetFileData(SeqInfo.FileId));
 			BnkInfo = SoundArchive.InfoBlock.BankInfos[SeqInfo.Bank];
@@ -176,9 +178,10 @@ namespace DSSoundStudio.UI
         }
 
         private void toolStripButtonExport_Click(object sender, EventArgs e) {
+			string name = SoundArchive.SymbolBlock.SequenceSymbols.Entries[SeqIdx];
             SaveFileDialog sf = new SaveFileDialog {
                 Filter = "WAV File (*.wav)|*.wav",
-                FileName = "output.wav"
+                FileName = $"{name}.wav"
             };
 
             if (sf.ShowDialog() == DialogResult.OK) {
@@ -249,8 +252,11 @@ namespace DSSoundStudio.UI
 		// Token: 0x04000018 RID: 24
 		private SDAT.INFO.SequenceInfo SeqInfo;
 
-		// Token: 0x04000019 RID: 25
-		private SSEQ Sequence;
+        private int SeqIdx;
+
+
+        // Token: 0x04000019 RID: 25
+        private SSEQ Sequence;
 
 		// Token: 0x0400001A RID: 26
 		private SDAT.INFO.BankInfo BnkInfo;
