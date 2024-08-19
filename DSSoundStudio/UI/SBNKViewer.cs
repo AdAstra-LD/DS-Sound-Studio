@@ -64,117 +64,113 @@ namespace DSSoundStudio.UI
 		// Token: 0x0600001D RID: 29 RVA: 0x00006260 File Offset: 0x00004460
 		private void SoundThreadMain()
 		{
-			BufferedWaveProvider bufferedWaveProvider = new BufferedWaveProvider(new WaveFormat(65456, 16, 2));
-			bufferedWaveProvider.DiscardOnBufferOverflow = true;
-			bufferedWaveProvider.BufferLength = 21824;
-			WaveOut waveOut = new WaveOut();
-			waveOut.DesiredLatency = 150;
-			waveOut.Init(bufferedWaveProvider);
+            BufferedWaveProvider bufferedWaveProvider = new BufferedWaveProvider(new WaveFormat(MainForm.woutSampleRate, 16, MainForm.woutChannels)) {
+                DiscardOnBufferOverflow = true,
+                BufferLength = MainForm.woutByteSize * MainForm.woutChunks
+            };
+            WaveOut waveOut = new WaveOut {
+                DesiredLatency = 150
+            };
+            waveOut.Init(bufferedWaveProvider);
 			waveOut.Play();
 			SNDWork sndwork = new SNDWork();
 			sndwork.ExChannelInit();
 			sndwork.SeqInit();
 			List<ExChannel> usechan = new List<ExChannel>();
 			List<long> chantag = new List<long>();
-			while (!Stop)
-			{
-				if (Playing && bufferedWaveProvider.BufferedBytes < bufferedWaveProvider.BufferLength && bufferedWaveProvider.BufferLength - bufferedWaveProvider.BufferedBytes > 1364)
-				{
-					sndwork.UpdateExChannel();
-					foreach (ExChannel exChannel in usechan)
-					{
-						if (exChannel.Length > 0)
-						{
-							exChannel.Length--;
-						}
-						else if (exChannel.Length == 0)
-						{
-							exChannel.Priority = 1;
-							exChannel.ReleaseChannel();
-						}
-					}
-					while (commandQueue.Count > 0)
-					{
-						SimpleSoundCommand c = commandQueue.Dequeue();
-						switch (c.cmd)
-						{
-						case SimpleSoundCommand.Command.NoteOn:
-						{
-							InstData instData = Bank.ReadInstData(c.arg1, (byte)c.arg2);
-							if (instData != null)
-							{
-								ushort chBitMask;
-								switch (instData.Type)
-								{
-								case InstData.InstType.Pcm:
-								case InstData.InstType.DirectPcm:
-									chBitMask = ushort.MaxValue;
-									break;
-								case InstData.InstType.Psg:
-									chBitMask = 16128;
-									break;
-								case InstData.InstType.Noise:
-									chBitMask = 49152;
-									break;
-								default:
-									return;
-								}
-								ExChannel exChannel2 = sndwork.AllocExChannel(chBitMask, 64, false, delegate(ExChannel Channel, ExChannel.ExChannelCallbackStatus status, object CallbackData)
-								{
-									if (status == ExChannel.ExChannelCallbackStatus.Finish)
-									{
-										Channel.Priority = 0;
-										Channel.Free();
-									}
-									usechan.Remove(Channel);
-									chantag.Remove(c.arg3);
-								}, null);
-								if (exChannel2 != null)
-								{
-									if (!Sequence.NoteOn(exChannel2, (byte)c.arg2, 127, -1, Bank, instData))
-									{
-										exChannel2.Priority = 0;
-										exChannel2.Free();
-									}
-									else
-									{
-										usechan.Add(exChannel2);
-										chantag.Add(c.arg3);
-									}
-								}
-							}
-							break;
-						}
-						case SimpleSoundCommand.Command.Release:
-						{
-							int num = chantag.IndexOf(c.arg3);
-							if (num >= 0)
-							{
-								usechan[num].Priority = 1;
-								usechan[num].ReleaseChannel();
-							}
-							break;
-						}
-						}
-					}
-					sndwork.SeqMain(true);
-					sndwork.ExChannelMain(true);
-					LibDSSound.Software.Util.CalcRandom();
-					for (int i = 0; i < 341; i++)
-					{
-						short num2;
-						short num3;
-						sndwork.Hardware.Evaluate(256, out num2, out num3);
-						bufferedWaveProvider.AddSamples(new[]
-						{
-							(byte)(num2 & 255),
-							(byte)(num2 >> 8 & 255),
-							(byte)(num3 & 255),
-							(byte)(num3 >> 8 & 255)
-						}, 0, 4);
-					}
-				}
-			}
+            
+			while (!Stop) {
+                if (Playing) {
+                    int bufferedBytes = bufferedWaveProvider.BufferedBytes;
+                    int bufferLength = bufferedWaveProvider.BufferLength;
+
+                    if (bufferedBytes < bufferLength) {
+                        int remainingBytes = bufferLength - bufferedBytes;
+
+                        if (remainingBytes > MainForm.woutByteSize) {
+                            sndwork.UpdateExChannel();
+
+                            foreach (ExChannel exChannel in usechan) {
+                                if (exChannel.Length > 0) {
+                                    exChannel.Length--;
+                                } else if (exChannel.Length == 0) {
+                                    exChannel.Priority = 1;
+                                    exChannel.ReleaseChannel();
+                                }
+                            }
+
+                            while (commandQueue.Count > 0) {
+                                SimpleSoundCommand c = commandQueue.Dequeue();
+                                switch (c.cmd) {
+                                    case SimpleSoundCommand.Command.NoteOn: {
+                                            InstData instData = Bank.ReadInstData(c.arg1, (byte)c.arg2);
+                                            if (instData != null) {
+                                                ushort chBitMask;
+                                                switch (instData.Type) {
+                                                    case InstData.InstType.Pcm:
+                                                    case InstData.InstType.DirectPcm:
+                                                        chBitMask = ushort.MaxValue;
+                                                        break;
+                                                    case InstData.InstType.Psg:
+                                                        chBitMask = 16128;
+                                                        break;
+                                                    case InstData.InstType.Noise:
+                                                        chBitMask = 49152;
+                                                        break;
+                                                    default:
+                                                        return;
+                                                }
+
+                                                ExChannel exChannel2 = sndwork.AllocExChannel(chBitMask, 64, false, delegate (ExChannel Channel, ExChannel.ExChannelCallbackStatus status, object CallbackData) {
+                                                    if (status == ExChannel.ExChannelCallbackStatus.Finish) {
+                                                        Channel.Priority = 0;
+                                                        Channel.Free();
+                                                    }
+                                                    usechan.Remove(Channel);
+                                                    chantag.Remove(c.arg3);
+                                                }, null);
+
+                                                if (exChannel2 != null) {
+                                                    if (!Sequence.NoteOn(exChannel2, (byte)c.arg2, 127, -1, Bank, instData)) {
+                                                        exChannel2.Priority = 0;
+                                                        exChannel2.Free();
+                                                    } else {
+                                                        usechan.Add(exChannel2);
+                                                        chantag.Add(c.arg3);
+                                                    }
+                                                }
+                                            }
+                                            break;
+                                        }
+
+                                    case SimpleSoundCommand.Command.Release: {
+                                            int num = chantag.IndexOf(c.arg3);
+                                            if (num >= 0) {
+                                                usechan[num].Priority = 1;
+                                                usechan[num].ReleaseChannel();
+                                            }
+                                            break;
+                                        }
+                                }
+                            }
+                            sndwork.SeqMain(true);
+                            sndwork.ExChannelMain(true);
+                            LibDSSound.Software.Util.CalcRandom();
+
+                            for (int i = 0; i < MainForm.woutSamplesPerIteration; i++) {
+                                sndwork.Hardware.Evaluate(256, out short num2, out short num3);
+                                bufferedWaveProvider.AddSamples(new[]
+                                {
+                            (byte)(num2 & 255),
+                            (byte)(num2 >> 8 & 255),
+                            (byte)(num3 & 255),
+                            (byte)(num3 >> 8 & 255)
+                        }, 0, 4);
+                            }
+                        }
+                    }
+                }
+            }
 			waveOut.Stop();
 			waveOut.Dispose();
 			waveOut = null;

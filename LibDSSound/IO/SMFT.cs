@@ -8,7 +8,7 @@ namespace LibDSSound.IO
 	public class SMFT
 	{
 		// Token: 0x060000DF RID: 223 RVA: 0x00009968 File Offset: 0x00007B68
-		public static string ToSMFT(SSEQ Seq)
+		public static string ToText(SSEQ Seq)
 		{
 			int[] labels = GetLabels(Seq);
 			int i = 0;

@@ -28,9 +28,9 @@ namespace DSSoundStudio.UI
 			this.mainMenu1 = new MainMenu(this.components);
 			this.vistaMenu1 = new VistaMenu(this.components);
 			this.toolStrip1 = new ToolStrip();
-			this.toolStripButton1 = new ToolStripButton();
-			this.toolStripButton2 = new ToolStripButton();
-			this.splitContainer1 = new SplitContainer();
+			this.toolStripButtonPlayPause = new ToolStripButton();
+			this.toolStripButtonStop = new ToolStripButton();
+            this.splitContainer1 = new SplitContainer();
 			this.fastColoredTextBox1 = new FastColoredTextBox();
 			this.splitContainer2 = new SplitContainer();
 			this.tabControl1 = new TabControl();
@@ -51,29 +51,27 @@ namespace DSSoundStudio.UI
 			this.vistaMenu1.ContainerControl = this;
 			this.toolStrip1.Items.AddRange(new ToolStripItem[]
 			{
-				this.toolStripButton1,
-				this.toolStripButton2
-			});
+				this.toolStripButtonPlayPause,
+				this.toolStripButtonStop
+            });
 			this.toolStrip1.Location = new Point(0, 0);
 			this.toolStrip1.Name = "toolStrip1";
 			this.toolStrip1.Size = new Size(575, 25);
 			this.toolStrip1.TabIndex = 0;
 			this.toolStrip1.Text = "toolStrip1";
-			this.toolStripButton1.DisplayStyle = ToolStripItemDisplayStyle.Image;
-			this.toolStripButton1.Image = Resources.control;
-			this.toolStripButton1.ImageTransparentColor = Color.Magenta;
-			this.toolStripButton1.Name = "toolStripButton1";
-			this.toolStripButton1.Size = new Size(23, 22);
-			this.toolStripButton1.Text = "toolStripButtonPlayPause";
-			this.toolStripButton1.Click += new EventHandler(this.toolStripButton1_Click);
-			this.toolStripButton2.DisplayStyle = ToolStripItemDisplayStyle.Image;
-			this.toolStripButton2.Image = Resources.control_stop_square;
-			this.toolStripButton2.ImageTransparentColor = Color.Magenta;
-			this.toolStripButton2.Name = "toolStripButton2";
-			this.toolStripButton2.Size = new Size(23, 22);
-			this.toolStripButton2.Text = "toolStripButtonStop";
-			this.toolStripButton2.Click += new EventHandler(this.toolStripButton2_Click);
-			this.splitContainer1.Dock = DockStyle.Fill;
+			this.toolStripButtonPlayPause.DisplayStyle = ToolStripItemDisplayStyle.Image;
+			this.toolStripButtonPlayPause.Image = Resources.control;
+			this.toolStripButtonPlayPause.ImageTransparentColor = Color.Magenta;
+			this.toolStripButtonPlayPause.Name = "toolStripButtonPlayPause";
+			this.toolStripButtonPlayPause.Size = new Size(23, 22);
+			this.toolStripButtonPlayPause.Click += new EventHandler(this.toolStripButtonPlayPause_Click);
+			this.toolStripButtonStop.DisplayStyle = ToolStripItemDisplayStyle.Image;
+			this.toolStripButtonStop.Image = Resources.control_stop_square;
+			this.toolStripButtonStop.ImageTransparentColor = Color.Magenta;
+			this.toolStripButtonStop.Name = "toolStripButtonStop";
+			this.toolStripButtonStop.Size = new Size(23, 22);
+			this.toolStripButtonStop.Click += new EventHandler(this.toolStripButtonStop_Click);
+            this.splitContainer1.Dock = DockStyle.Fill;
 			this.splitContainer1.FixedPanel = FixedPanel.Panel2;
 			this.splitContainer1.Location = new Point(0, 25);
 			this.splitContainer1.Name = "splitContainer1";
@@ -173,8 +171,8 @@ namespace DSSoundStudio.UI
 			base.PerformLayout();
 		}
 
-		// Token: 0x04000021 RID: 33
-		private IContainer components = null;
+        // Token: 0x04000021 RID: 33
+        private IContainer components = null;
 
 		// Token: 0x04000022 RID: 34
 		private MainMenu mainMenu1;
@@ -201,12 +199,12 @@ namespace DSSoundStudio.UI
 		private ToolStrip toolStrip1;
 
 		// Token: 0x0400002A RID: 42
-		private ToolStripButton toolStripButton1;
+		private ToolStripButton toolStripButtonPlayPause;
 
 		// Token: 0x0400002B RID: 43
-		private ToolStripButton toolStripButton2;
+		private ToolStripButton toolStripButtonStop;
 
-		// Token: 0x0400002C RID: 44
-		private FastColoredTextBox fastColoredTextBox1;
+        // Token: 0x0400002C RID: 44
+        private FastColoredTextBox fastColoredTextBox1;
 	}
 }

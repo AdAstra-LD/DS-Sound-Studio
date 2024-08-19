@@ -7,13 +7,15 @@ using DSSoundStudio.Properties;
 using FastColoredTextBoxNS;
 using LibDSSound.IO;
 using LibDSSound.Software;
+using NAudio.Wave;
 
 namespace DSSoundStudio.UI
 {
-	// Token: 0x02000004 RID: 4
-	public partial class SSEQViewer : Form
+    // Token: 0x02000004 RID: 4
+    public partial class SSEQViewer : Form
 	{
 		// Token: 0x0600000E RID: 14 RVA: 0x00004A80 File Offset: 0x00002C80
+		static Thread mainThread;
 		public SSEQViewer(SDAT SoundArchive, int SeqIdx)
 		{
 			this.SoundArchive = SoundArchive;
@@ -34,72 +36,78 @@ namespace DSSoundStudio.UI
 		// Token: 0x0600000F RID: 15 RVA: 0x00004BF8 File Offset: 0x00002DF8
 		private void SSEQViewer_Load(object sender, EventArgs e)
 		{
-			fastColoredTextBox1.Text = SMFT.ToSMFT(Sequence);
+			fastColoredTextBox1.Text = SMFT.ToText(Sequence);
 		}
 
 		// Token: 0x06000010 RID: 16 RVA: 0x00004C14 File Offset: 0x00002E14
-		private void SoundThreadMain()
-		{
+		private void SoundThreadMain() {
 			MainForm.waveOut.Play();
-			SNDWork sndwork = new SNDWork();
+            SNDWork sndwork = new SNDWork();
 			sndwork.ExChannelInit();
 			sndwork.SeqInit();
 			sndwork.StartSeq(0, Sequence.Data, 0, Bank);
 			Player player = sndwork.Players[0];
 			player.Volume = SeqInfo.Volume;
-			while (!Stop)
-			{
-				if (Playing && MainForm.bufferedWaveProvider.BufferedBytes < MainForm.bufferedWaveProvider.BufferLength && MainForm.bufferedWaveProvider.BufferLength - MainForm.bufferedWaveProvider.BufferedBytes > 1364)
-				{
-					sndwork.UpdateExChannel();
-					sndwork.SeqMain(play: true);
-					sndwork.ExChannelMain(doUpdate: true);
-					LibDSSound.Software.Util.CalcRandom();
-					for (int i = 0; i < 341; i++)
-					{
-						sndwork.Hardware.Evaluate(256, out var Left, out var Right);
-						MainForm.bufferedWaveProvider.AddSamples(new byte[4]
-						{
-							(byte)((uint)Left & 0xFFu),
-							(byte)((uint)(Left >> 8) & 0xFFu),
-							(byte)((uint)Right & 0xFFu),
-							(byte)((uint)(Right >> 8) & 0xFFu)
-						}, 0, 4);
-					}
-				}
-			}
-			MainForm.waveOut.Stop();
-		}
 
-		// Token: 0x06000011 RID: 17 RVA: 0x00004DB4 File Offset: 0x00002FB4
-		private void toolStripButton1_Click(object sender, EventArgs e)
-		{
-			if (!Playing)
-			{
-				if (Stop)
-				{
-					Stop = false;
-					new Thread(SoundThreadMain).Start();
-				}
-				toolStripButton1.Image = Resources.control_pause;
-			}
-			else
-			{
-				toolStripButton1.Image = Resources.control;
-			}
-			Playing = !Playing;
-		}
+            while (!Stop) {
+				if (Playing) {
+                    int bufferedBytes = MainForm.bufferedWaveProvider.BufferedBytes;
+                    int bufferLength = MainForm.bufferedWaveProvider.BufferLength;
+
+                    if (bufferedBytes < bufferLength) {
+                        int remainingBytes = bufferLength - bufferedBytes;
+
+                        if (remainingBytes > MainForm.woutByteSize) {
+							sndwork.UpdateExChannel();
+							sndwork.SeqMain(play: true);
+							sndwork.ExChannelMain(doUpdate: true);
+							LibDSSound.Software.Util.CalcRandom();
+
+							for (int i = 0; i < MainForm.woutSamplesPerIteration; i++) {
+								sndwork.Hardware.Evaluate(256, out var Left, out var Right);
+								byte[] buffer = new byte[4] {
+									(byte)((uint)Left & 0xFFu),
+									(byte)((uint)(Left >> 8) & 0xFFu),
+									(byte)((uint)Right & 0xFFu),
+									(byte)((uint)(Right >> 8) & 0xFFu)
+								};
+
+								MainForm.bufferedWaveProvider.AddSamples(buffer, 0, 4);
+							}
+						}			
+					}
+                }
+            }
+
+			MainForm.waveOut.Stop();
+        }
+
+        // Token: 0x06000011 RID: 17 RVA: 0x00004DB4 File Offset: 0x00002FB4
+        private void toolStripButtonPlayPause_Click(object sender, EventArgs e) {
+            if (Playing) {
+                toolStripButtonPlayPause.Image = Resources.control;
+				Playing = false;
+            } else {
+                if (Stop) {
+                    Stop = false;
+					mainThread = new Thread(SoundThreadMain);
+					mainThread.Start();
+                }
+                toolStripButtonPlayPause.Image = Resources.control_pause;
+				Playing = true;
+            }
+        }
 
 		// Token: 0x06000012 RID: 18 RVA: 0x00004E30 File Offset: 0x00003030
-		private void toolStripButton2_Click(object sender, EventArgs e)
+		private void toolStripButtonStop_Click(object sender, EventArgs e)
 		{
-			Playing = false;
+            Playing = false;
 			Stop = true;
-			toolStripButton1.Image = Resources.control;
+            toolStripButtonPlayPause.Image = Resources.control;
 		}
 
 		// Token: 0x06000013 RID: 19 RVA: 0x00004E52 File Offset: 0x00003052
-		private void SSEQViewer_FormClosing(object sender, FormClosingEventArgs e)
+        private void SSEQViewer_FormClosing(object sender, FormClosingEventArgs e)
 		{
 			Playing = false;
 			Stop = true;
@@ -129,9 +137,6 @@ namespace DSSoundStudio.UI
 
 		// Token: 0x04000013 RID: 19
 		private const int SAMPLE_TIMER = 256;
-
-		// Token: 0x04000014 RID: 20
-		private const int SAMPLE_RATE = 65456;
 
 		// Token: 0x04000015 RID: 21
 		private bool Playing;

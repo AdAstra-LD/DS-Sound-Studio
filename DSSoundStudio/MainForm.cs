@@ -11,53 +11,52 @@ namespace DSSoundStudio
 	{
 		public static WaveOut waveOut;
 		public static BufferedWaveProvider bufferedWaveProvider;
-		// Token: 0x06000055 RID: 85 RVA: 0x000088F3 File Offset: 0x00006AF3
-		public MainForm()
+		public const int woutSamplesPerIteration = 341;
+		public const int woutChannels = 2;
+        public const int woutByteSize = woutSamplesPerIteration * woutChannels * 2;
+        public const int woutChunks = 16;
+        public const int woutSampleRate = 65456;
+
+        // Token: 0x06000055 RID: 85 RVA: 0x000088F3 File Offset: 0x00006AF3
+        public MainForm()
 		{
 			waveOut = new WaveOut {
 				DesiredLatency = 150
 			};
-			bufferedWaveProvider = new BufferedWaveProvider(new WaveFormat(65456, 16, 2)) {
+
+            WaveFormat wf = new WaveFormat(woutSampleRate, 16, woutChannels);
+            bufferedWaveProvider = new BufferedWaveProvider(wf) {
 				DiscardOnBufferOverflow = true,
-				BufferLength = 21824,
+				BufferLength = woutByteSize * woutChunks,
 			};
 			waveOut.Init(bufferedWaveProvider);
 			InitializeComponent();
 		}
 
 		// Token: 0x06000056 RID: 86 RVA: 0x0000891C File Offset: 0x00006B1C
-		private void MainForm_Load(object sender, EventArgs e)
-		{
-			for (int i = 0; i < Controls.Count; i++)
-			{
-				MdiClient mdiClient = Controls[i] as MdiClient;
-				if (mdiClient != null)
-				{
-					Win32Util.SetMDIBorderStyle(mdiClient, BorderStyle.None);
-				}
-			}
+		private void MainForm_Load(object sender, EventArgs e) {
+            for (int i = 0; i < Controls.Count; i++) {
+                if (Controls[i] is MdiClient mdiClient) {
+                    Win32Util.SetMDIBorderStyle(mdiClient, BorderStyle.None);
+                }
+            }
 		}
 
 		// Token: 0x06000057 RID: 87 RVA: 0x00008968 File Offset: 0x00006B68
-		private void menuOpen(object sender, EventArgs e)
-		{
-			if (openFileDialog1.ShowDialog() == DialogResult.OK && openFileDialog1.FileName.Length > 0)
-			{
-				if (openFileDialog1.FileName == CurPath && SDATViewerForm != null)
-				{
+		private void menuOpen(object sender, EventArgs e) {
+            if (openFileDialog1.ShowDialog() == DialogResult.OK && openFileDialog1.FileName.Length > 0) {
+                if (openFileDialog1.FileName == CurPath && SDATViewerForm != null) {
 					MessageBox.Show("This file is already open!");
 					SDATViewerForm.BringToFront();
-				}
-				else if (SDATViewerForm == null || MessageBox.Show("Are you sure you want to close the currently opened SDAT and its subfiles?", "Close", MessageBoxButtons.YesNo) != DialogResult.No)
-				{
-					foreach (Form form in MdiChildren)
-					{
+                } else if (SDATViewerForm == null || MessageBox.Show("Are you sure you want to close the currently opened SDAT and its subfiles?", "Close", MessageBoxButtons.YesNo) != DialogResult.No) {
+                    foreach (Form form in MdiChildren) {
 						form.Close();
 					}
 					CurPath = openFileDialog1.FileName;
-					SDATViewerForm = new SDATViewer(openFileDialog1.FileName);
-					SDATViewerForm.MdiParent = this;
-					SDATViewerForm.FormClosed += SDATViewerForm_FormClosed;
+                    SDATViewerForm = new SDATViewer(openFileDialog1.FileName) {
+                        MdiParent = this
+                    };
+                    SDATViewerForm.FormClosed += SDATViewerForm_FormClosed;
 					SDATViewerForm.Show();
 				}
 			}
