@@ -173,7 +173,8 @@ namespace DSSoundStudio.UI
             }
 			waveOut.Stop();
 			waveOut.Dispose();
-			waveOut = null;
+			bufferedWaveProvider.ClearBuffer();
+            waveOut = null;
 			bufferedWaveProvider = null;
 		}
 

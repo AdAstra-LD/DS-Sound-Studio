@@ -80,6 +80,7 @@ namespace DSSoundStudio.UI
             }
 
 			MainForm.waveOut.Stop();
+			MainForm.bufferedWaveProvider.ClearBuffer();
         }
 
         // Token: 0x06000011 RID: 17 RVA: 0x00004DB4 File Offset: 0x00002FB4
