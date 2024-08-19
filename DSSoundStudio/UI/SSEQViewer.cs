@@ -41,8 +41,10 @@ namespace DSSoundStudio.UI
 
 		// Token: 0x06000010 RID: 16 RVA: 0x00004C14 File Offset: 0x00002E14
 		private void SoundThreadMain() {
-			MainForm.waveOut.Play();
-            SNDWork sndwork = new SNDWork();
+			if (MainForm.waveWriter == null) {
+				MainForm.waveOut.Play();
+			}
+			SNDWork sndwork = new SNDWork();
 			sndwork.ExChannelInit();
 			sndwork.SeqInit();
 			sndwork.StartSeq(0, Sequence.Data, 0, Bank);
@@ -72,15 +74,26 @@ namespace DSSoundStudio.UI
 									(byte)((uint)(Right >> 8) & 0xFFu)
 								};
 
-								MainForm.bufferedWaveProvider.AddSamples(buffer, 0, 4);
-							}
-						}			
+                                if (MainForm.waveWriter == null) {
+                                    MainForm.bufferedWaveProvider.AddSamples(buffer, 0, 4);
+                                } else {
+                                    MainForm.waveWriter.Write(buffer, 0, 4);
+                                }
+                            }
+						}
 					}
                 }
             }
 
-			MainForm.waveOut.Stop();
-			MainForm.bufferedWaveProvider.ClearBuffer();
+			Console.WriteLine("Playback/Recording stopped!");
+			if (MainForm.waveWriter == null) {
+				MainForm.waveOut.Stop();
+			} else {
+                MainForm.waveWriter.Dispose();
+                MainForm.waveWriter = null;
+            }
+
+            MainForm.bufferedWaveProvider.ClearBuffer();
         }
 
         // Token: 0x06000011 RID: 17 RVA: 0x00004DB4 File Offset: 0x00002FB4
@@ -105,9 +118,27 @@ namespace DSSoundStudio.UI
             Playing = false;
 			Stop = true;
             toolStripButtonPlayPause.Image = Resources.control;
-		}
+        }
 
-		// Token: 0x06000013 RID: 19 RVA: 0x00004E52 File Offset: 0x00003052
+        private void toolStripButtonExport_Click(object sender, EventArgs e) {
+            SaveFileDialog sf = new SaveFileDialog {
+                Filter = "WAV File (*.wav)|*.wav",
+                FileName = "output.wav"
+            };
+
+            if (sf.ShowDialog() == DialogResult.OK) {
+				toolStripButtonStop_Click(null, null);
+
+                MainForm.waveWriter = new WaveFileWriter(sf.FileName, MainForm.waveOut.OutputWaveFormat);
+
+                toolStripButtonPlayPause_Click(null, null);
+				mainThread.Join(10 * 1000);
+				toolStripButtonStop_Click(null, null);
+            }
+        }
+
+
+            // Token: 0x06000013 RID: 19 RVA: 0x00004E52 File Offset: 0x00003052
         private void SSEQViewer_FormClosing(object sender, FormClosingEventArgs e)
 		{
 			Playing = false;

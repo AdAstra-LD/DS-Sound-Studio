@@ -30,6 +30,7 @@ namespace DSSoundStudio.UI
 			this.toolStrip1 = new ToolStrip();
 			this.toolStripButtonPlayPause = new ToolStripButton();
 			this.toolStripButtonStop = new ToolStripButton();
+			this.toolStripButtonExport = new ToolStripButton();
             this.splitContainer1 = new SplitContainer();
 			this.fastColoredTextBox1 = new FastColoredTextBox();
 			this.splitContainer2 = new SplitContainer();
@@ -52,7 +53,8 @@ namespace DSSoundStudio.UI
 			this.toolStrip1.Items.AddRange(new ToolStripItem[]
 			{
 				this.toolStripButtonPlayPause,
-				this.toolStripButtonStop
+				this.toolStripButtonStop,
+				this.toolStripButtonExport
             });
 			this.toolStrip1.Location = new Point(0, 0);
 			this.toolStrip1.Name = "toolStrip1";
@@ -71,6 +73,15 @@ namespace DSSoundStudio.UI
 			this.toolStripButtonStop.Name = "toolStripButtonStop";
 			this.toolStripButtonStop.Size = new Size(23, 22);
 			this.toolStripButtonStop.Click += new EventHandler(this.toolStripButtonStop_Click);
+
+            this.toolStripButtonExport.DisplayStyle = ToolStripItemDisplayStyle.Image;
+			this.toolStripButtonExport.Image = (Image)componentResourceManager.GetObject("menuItemSaveAll.Image");
+            this.toolStripButtonExport.ImageTransparentColor = Color.Magenta;
+            this.toolStripButtonExport.Name = "toolStripButtonExport";
+            this.toolStripButtonExport.Size = new Size(23, 22);
+			this.toolStripButtonExport.Click += new EventHandler(this.toolStripButtonExport_Click);
+
+
             this.splitContainer1.Dock = DockStyle.Fill;
 			this.splitContainer1.FixedPanel = FixedPanel.Panel2;
 			this.splitContainer1.Location = new Point(0, 25);
@@ -203,6 +214,9 @@ namespace DSSoundStudio.UI
 
 		// Token: 0x0400002B RID: 43
 		private ToolStripButton toolStripButtonStop;
+
+        private ToolStripButton toolStripButtonExport;
+
 
         // Token: 0x0400002C RID: 44
         private FastColoredTextBox fastColoredTextBox1;
