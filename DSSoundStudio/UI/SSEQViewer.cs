@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
@@ -8,6 +9,7 @@ using FastColoredTextBoxNS;
 using LibDSSound.IO;
 using LibDSSound.Software;
 using NAudio.Wave;
+using NAudio.Wave.SampleProviders;
 
 namespace DSSoundStudio.UI
 {
@@ -41,9 +43,7 @@ namespace DSSoundStudio.UI
 
 		// Token: 0x06000010 RID: 16 RVA: 0x00004C14 File Offset: 0x00002E14
 		private void SoundThreadMain() {
-			if (MainForm.waveWriter == null) {
-				MainForm.waveOut.Play();
-			}
+			MainForm.waveOut.Play();
 			SNDWork sndwork = new SNDWork();
 			sndwork.ExChannelInit();
 			sndwork.SeqInit();
@@ -74,30 +74,85 @@ namespace DSSoundStudio.UI
 									(byte)((uint)(Right >> 8) & 0xFFu)
 								};
 
-                                if (MainForm.waveWriter == null) {
-                                    MainForm.bufferedWaveProvider.AddSamples(buffer, 0, 4);
-                                } else {
-                                    MainForm.waveWriter.Write(buffer, 0, 4);
-                                }
+								MainForm.bufferedWaveProvider.AddSamples(buffer, 0, 4);
                             }
 						}
 					}
                 }
             }
 
-			Console.WriteLine("Playback/Recording stopped!");
-			if (MainForm.waveWriter == null) {
-				MainForm.waveOut.Stop();
-			} else {
-                MainForm.waveWriter.Dispose();
-                MainForm.waveWriter = null;
-            }
-
+			Console.WriteLine("Playback stopped!");
+			MainForm.waveOut.Stop();
             MainForm.bufferedWaveProvider.ClearBuffer();
         }
+		private void SoundThreadRecord()
+		{
+			SNDWork sndwork = new SNDWork();
+			sndwork.ExChannelInit();
+			sndwork.SeqInit();
+			sndwork.StartSeq(0, Sequence.Data, 0, Bank);
+			Player player = sndwork.Players[0];
+			player.Volume = SeqInfo.Volume;
 
-        // Token: 0x06000011 RID: 17 RVA: 0x00004DB4 File Offset: 0x00002FB4
-        private void toolStripButtonPlayPause_Click(object sender, EventArgs e) {
+			while (!Stop)
+			{
+				if (Playing)
+				{
+					int bufferedBytes = MainForm.bufferedWaveProvider.BufferedBytes;
+					int bufferLength = MainForm.bufferedWaveProvider.BufferLength;
+
+					if (bufferedBytes < bufferLength)
+					{
+						int remainingBytes = bufferLength - bufferedBytes;
+
+						if (remainingBytes > MainForm.woutByteSize)
+						{
+							sndwork.UpdateExChannel();
+							sndwork.SeqMain(play: true);
+							sndwork.ExChannelMain(doUpdate: true);
+							LibDSSound.Software.Util.CalcRandom();
+
+							for (int i = 0; i < MainForm.woutSamplesPerIteration; i++)
+							{
+								sndwork.Hardware.Evaluate(256, out var Left, out var Right);
+								byte[] buffer = new byte[4] {
+									(byte)((uint)Left & 0xFFu),
+									(byte)((uint)(Left >> 8) & 0xFFu),
+									(byte)((uint)Right & 0xFFu),
+									(byte)((uint)(Right >> 8) & 0xFFu)
+								};
+
+								
+								MainForm.waveWriter.Write(buffer, 0, 4);
+							}
+						}
+					}
+				}
+			}
+
+			Console.WriteLine("Recording stopped!");
+            MainForm.waveWriter.Dispose();
+
+			if (MainForm.outWaveWriterSampleRate != MainForm.woutSampleRate) {
+				Resample(MainForm.waveWriter.Filename, MainForm.outWaveWriterPath, 48000);
+
+				if (File.Exists(MainForm.tempWavPath)) {
+					File.Delete(MainForm.tempWavPath);
+				}
+			}
+            MainForm.waveWriter = null;
+			MainForm.outWaveWriterPath = null;
+
+        }
+
+		private void Resample(string inFile, string outFile, int outRate) {
+            using (var reader = new AudioFileReader(inFile)) {
+                var resampler = new WdlResamplingSampleProvider(reader, outRate);
+                WaveFileWriter.CreateWaveFile16(outFile, resampler);
+            }
+        }
+		// Token: 0x06000011 RID: 17 RVA: 0x00004DB4 File Offset: 0x00002FB4
+		private void toolStripButtonPlayPause_Click(object sender, EventArgs e) {
             if (Playing) {
                 toolStripButtonPlayPause.Image = Resources.control;
 				Playing = false;
@@ -129,9 +184,21 @@ namespace DSSoundStudio.UI
             if (sf.ShowDialog() == DialogResult.OK) {
 				toolStripButtonStop_Click(null, null);
 
-                MainForm.waveWriter = new WaveFileWriter(sf.FileName, MainForm.waveOut.OutputWaveFormat);
+				if (MainForm.outWaveWriterSampleRate == MainForm.woutSampleRate) {
+					MainForm.outWaveWriterPath = sf.FileName;
+				} else {
+					MainForm.outWaveWriterPath = MainForm.tempWavPath;
+                }
 
-                toolStripButtonPlayPause_Click(null, null);
+                MainForm.waveWriter = new WaveFileWriter(MainForm.outWaveWriterPath, MainForm.waveOut.OutputWaveFormat);
+
+                Stop = false;
+				mainThread = new Thread(SoundThreadRecord);
+				mainThread.Start();
+
+				toolStripButtonPlayPause.Image = Resources.control_pause;
+				Playing = true;
+
 				mainThread.Join(10 * 1000);
 				toolStripButtonStop_Click(null, null);
             }

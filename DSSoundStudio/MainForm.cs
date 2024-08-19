@@ -12,7 +12,11 @@ namespace DSSoundStudio
 		public static WaveOut waveOut;
 		public static BufferedWaveProvider bufferedWaveProvider;
 		public static WaveFileWriter waveWriter;
-		public const int woutSamplesPerIteration = 341;
+		public static readonly string tempWavPath = "_DSS_temp.wav";
+		public static string outWaveWriterPath;
+		public static int outWaveWriterSampleRate = woutSampleRate;
+
+        public const int woutSamplesPerIteration = 341;
 		public const int woutChannels = 2;
         public const int woutByteSize = woutSamplesPerIteration * woutChannels * 2;
         public const int woutChunks = 16;
