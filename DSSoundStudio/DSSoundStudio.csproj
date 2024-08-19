@@ -87,6 +87,7 @@
     <AppDesigner Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AudioExportSettings.cs" />
     <Compile Include="IO\INST.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
@@ -104,6 +105,12 @@
     </Compile>
     <Compile Include="UI\ADSRGraph.cs">
       <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI\AudioExportSettingsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\AudioExportSettingsForm.Designer.cs">
+      <DependentUpon>AudioExportSettingsForm.cs</DependentUpon>
     </Compile>
     <Compile Include="UI\ISaveable.cs" />
     <Compile Include="UI\ListViewNF.cs">
@@ -151,6 +158,9 @@
     <EmbeddedResource Include="MainForm.resources" />
     <EmbeddedResource Include="Properties\Resources.resources" />
     <EmbeddedResource Include="UI\ADSRGraph.resources" />
+    <EmbeddedResource Include="UI\AudioExportSettingsForm.resx">
+      <DependentUpon>AudioExportSettingsForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="UI\PianoControl.resources" />
     <EmbeddedResource Include="UI\SBNKViewer.resources" />
     <EmbeddedResource Include="UI\SDATViewer.resources" />

@@ -87,8 +87,7 @@ namespace DSSoundStudio.UI
 			MainForm.waveOut.Stop();
             MainForm.bufferedWaveProvider.ClearBuffer();
         }
-		private void SoundThreadRecord()
-		{
+		private void SoundThreadRecord() {
 			SNDWork sndwork = new SNDWork();
 			sndwork.ExChannelInit();
 			sndwork.SeqInit();
@@ -96,36 +95,35 @@ namespace DSSoundStudio.UI
 			Player player = sndwork.Players[0];
 			player.Volume = SeqInfo.Volume;
 
-			while (!Stop)
-			{
-				if (Playing)
-				{
+			while (!Stop) {
+				if (Playing) {
 					int bufferedBytes = MainForm.bufferedWaveProvider.BufferedBytes;
 					int bufferLength = MainForm.bufferedWaveProvider.BufferLength;
 
-					if (bufferedBytes < bufferLength)
-					{
+					if (bufferedBytes < bufferLength) {
 						int remainingBytes = bufferLength - bufferedBytes;
 
-						if (remainingBytes > MainForm.woutByteSize)
-						{
+						if (remainingBytes > MainForm.woutByteSize) {
 							sndwork.UpdateExChannel();
 							sndwork.SeqMain(play: true);
 							sndwork.ExChannelMain(doUpdate: true);
 							LibDSSound.Software.Util.CalcRandom();
 
-							for (int i = 0; i < MainForm.woutSamplesPerIteration; i++)
-							{
+							if (MainForm.audioExport.waveWriter.Length > MainForm.audioExport.bytesCount) {
+								Stop = true;
+								break;
+							}
+
+							for (int i = 0; i < MainForm.woutSamplesPerIteration; i++) {
 								sndwork.Hardware.Evaluate(256, out var Left, out var Right);
 								byte[] buffer = new byte[4] {
 									(byte)((uint)Left & 0xFFu),
 									(byte)((uint)(Left >> 8) & 0xFFu),
+
 									(byte)((uint)Right & 0xFFu),
 									(byte)((uint)(Right >> 8) & 0xFFu)
 								};
-
-								
-								MainForm.waveWriter.Write(buffer, 0, 4);
+								MainForm.audioExport.waveWriter.Write(buffer, 0, 4);
 							}
 						}
 					}
@@ -133,26 +131,13 @@ namespace DSSoundStudio.UI
 			}
 
 			Console.WriteLine("Recording stopped!");
-            MainForm.waveWriter.Dispose();
+            MainForm.audioExport.waveWriter.Dispose();
 
-			if (MainForm.outWaveWriterSampleRate != MainForm.woutSampleRate) {
-				Resample(MainForm.waveWriter.Filename, MainForm.outWaveWriterPath, 48000);
-
-				if (File.Exists(MainForm.tempWavPath)) {
-					File.Delete(MainForm.tempWavPath);
-				}
-			}
-            MainForm.waveWriter = null;
-			MainForm.outWaveWriterPath = null;
-
+			MainForm.audioExport.TryResample();
+            MainForm.audioExport = null;
         }
 
-		private void Resample(string inFile, string outFile, int outRate) {
-            using (var reader = new AudioFileReader(inFile)) {
-                var resampler = new WdlResamplingSampleProvider(reader, outRate);
-                WaveFileWriter.CreateWaveFile16(outFile, resampler);
-            }
-        }
+		
 		// Token: 0x06000011 RID: 17 RVA: 0x00004DB4 File Offset: 0x00002FB4
 		private void toolStripButtonPlayPause_Click(object sender, EventArgs e) {
             if (Playing) {
@@ -179,21 +164,15 @@ namespace DSSoundStudio.UI
 
         private void toolStripButtonExport_Click(object sender, EventArgs e) {
 			string name = SoundArchive.SymbolBlock.SequenceSymbols.Entries[SeqIdx];
-            SaveFileDialog sf = new SaveFileDialog {
-                Filter = "WAV File (*.wav)|*.wav",
-                FileName = $"{name}.wav"
+			AudioExportSettingsForm aesf = new AudioExportSettingsForm() {
+				filename = name, 
+				samplingRate = MainForm.woutSampleRate,
             };
 
-            if (sf.ShowDialog() == DialogResult.OK) {
+            if (aesf.ShowDialog() == DialogResult.OK) {
 				toolStripButtonStop_Click(null, null);
-
-				if (MainForm.outWaveWriterSampleRate == MainForm.woutSampleRate) {
-					MainForm.outWaveWriterPath = sf.FileName;
-				} else {
-					MainForm.outWaveWriterPath = MainForm.tempWavPath;
-                }
-
-                MainForm.waveWriter = new WaveFileWriter(MainForm.outWaveWriterPath, MainForm.waveOut.OutputWaveFormat);
+                MainForm.audioExport = new AudioExportSettings(aesf.samplingRate, aesf.path, MainForm.waveOut.OutputWaveFormat);
+				MainForm.audioExport.setOutWaveLength(aesf.minutes, aesf.seconds);
 
                 Stop = false;
 				mainThread = new Thread(SoundThreadRecord);
@@ -202,7 +181,7 @@ namespace DSSoundStudio.UI
 				toolStripButtonPlayPause.Image = Resources.control_pause;
 				Playing = true;
 
-				mainThread.Join(10 * 1000);
+				mainThread.Join(120*1000);
 				toolStripButtonStop_Click(null, null);
             }
         }
