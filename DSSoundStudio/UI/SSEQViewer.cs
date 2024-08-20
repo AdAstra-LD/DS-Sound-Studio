@@ -45,7 +45,10 @@ namespace DSSoundStudio.UI
 
 		// Token: 0x06000010 RID: 16 RVA: 0x00004C14 File Offset: 0x00002E14
 		private void SoundThreadMain() {
-			MainForm.waveOut.Play();
+            MainForm.waveOut.Stop();
+            MainForm.bufferedWaveProvider.ClearBuffer();
+
+            MainForm.waveOut.Play();
 			SNDWork sndwork = new SNDWork();
 			sndwork.ExChannelInit();
 			sndwork.SeqInit();
