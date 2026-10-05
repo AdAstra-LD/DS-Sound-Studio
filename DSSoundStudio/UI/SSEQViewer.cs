@@ -55,6 +55,7 @@ namespace DSSoundStudio.UI
 			sndwork.StartSeq(0, Sequence.Data, 0, Bank);
 			Player player = sndwork.Players[0];
 			player.Volume = SeqInfo.Volume;
+			byte[] buffer = new byte[MainForm.woutByteSize];
 
             while (!Stop) {
 				if (Playing) {
@@ -72,18 +73,20 @@ namespace DSSoundStudio.UI
 
 							for (int i = 0; i < MainForm.woutSamplesPerIteration; i++) {
 								sndwork.Hardware.Evaluate(256, out var Left, out var Right);
-								byte[] buffer = new byte[4] {
-									(byte)((uint)Left & 0xFFu),
-									(byte)((uint)(Left >> 8) & 0xFFu),
-									(byte)((uint)Right & 0xFFu),
-									(byte)((uint)(Right >> 8) & 0xFFu)
-								};
-
-								MainForm.bufferedWaveProvider.AddSamples(buffer, 0, 4);
+								buffer[i * 4] = (byte)((uint)Left & 0xFFu);
+								buffer[i * 4 + 1] = (byte)((uint)(Left >> 8) & 0xFFu);
+								buffer[i * 4 + 2] = (byte)((uint)Right & 0xFFu);
+								buffer[i * 4 + 3] = (byte)((uint)(Right >> 8) & 0xFFu);
                             }
+
+							MainForm.bufferedWaveProvider.AddSamples(buffer, 0, buffer.Length);
+							continue;
 						}
 					}
                 }
+
+				// either paused, or the buffer is full. instead of spinning, just let the device drain it
+				Thread.Sleep(1);
             }
 
 			Console.WriteLine("Playback stopped!");
@@ -97,6 +100,7 @@ namespace DSSoundStudio.UI
 			sndwork.StartSeq(0, Sequence.Data, 0, Bank);
 			Player player = sndwork.Players[0];
 			player.Volume = SeqInfo.Volume;
+			byte[] buffer = new byte[MainForm.woutByteSize];
 
 			while (!Stop) {
 				if (Playing) {
@@ -119,18 +123,19 @@ namespace DSSoundStudio.UI
 
 							for (int i = 0; i < MainForm.woutSamplesPerIteration; i++) {
 								sndwork.Hardware.Evaluate(256, out var Left, out var Right);
-								byte[] buffer = new byte[4] {
-									(byte)((uint)Left & 0xFFu),
-									(byte)((uint)(Left >> 8) & 0xFFu),
-
-									(byte)((uint)Right & 0xFFu),
-									(byte)((uint)(Right >> 8) & 0xFFu)
-								};
-								MainForm.audioExport.waveWriter.Write(buffer, 0, 4);
+								buffer[i * 4] = (byte)((uint)Left & 0xFFu);
+								buffer[i * 4 + 1] = (byte)((uint)(Left >> 8) & 0xFFu);
+								buffer[i * 4 + 2] = (byte)((uint)Right & 0xFFu);
+								buffer[i * 4 + 3] = (byte)((uint)(Right >> 8) & 0xFFu);
 							}
+							MainForm.audioExport.waveWriter.Write(buffer, 0, buffer.Length);
+							continue;
 						}
 					}
 				}
+
+				// Nothing to render. instead of spinning, just wait
+				Thread.Sleep(1);
 			}
 
 			Console.WriteLine("Recording stopped!");

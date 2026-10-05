@@ -78,7 +78,8 @@ namespace DSSoundStudio.UI
 			sndwork.SeqInit();
 			List<ExChannel> usechan = new List<ExChannel>();
 			List<long> chantag = new List<long>();
-            
+			byte[] buffer = new byte[MainForm.woutByteSize];
+
 			while (!Stop) {
                 if (Playing) {
                     int bufferedBytes = bufferedWaveProvider.BufferedBytes;
@@ -159,17 +160,19 @@ namespace DSSoundStudio.UI
 
                             for (int i = 0; i < MainForm.woutSamplesPerIteration; i++) {
                                 sndwork.Hardware.Evaluate(256, out short num2, out short num3);
-                                bufferedWaveProvider.AddSamples(new[]
-                                {
-                            (byte)(num2 & 255),
-                            (byte)(num2 >> 8 & 255),
-                            (byte)(num3 & 255),
-                            (byte)(num3 >> 8 & 255)
-                        }, 0, 4);
+                                buffer[i * 4] = (byte)(num2 & 255);
+                                buffer[i * 4 + 1] = (byte)(num2 >> 8 & 255);
+                                buffer[i * 4 + 2] = (byte)(num3 & 255);
+                                buffer[i * 4 + 3] = (byte)(num3 >> 8 & 255);
                             }
+                            bufferedWaveProvider.AddSamples(buffer, 0, buffer.Length);
+                            continue;
                         }
                     }
                 }
+
+                // Buffer is full. instead of spinning, let the device drain it
+                Thread.Sleep(1);
             }
 			waveOut.Stop();
 			waveOut.Dispose();
