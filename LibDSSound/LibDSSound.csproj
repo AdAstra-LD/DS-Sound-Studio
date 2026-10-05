@@ -59,6 +59,7 @@
     <Compile Include="Software\InstData.cs" />
     <Compile Include="Software\Lfo.cs" />
     <Compile Include="Software\Player.cs" />
+    <Compile Include="Software\Resampler.cs" />
     <Compile Include="Software\Sequence.cs" />
     <Compile Include="Software\SNDWork.cs" />
     <Compile Include="Software\Track.cs" />

@@ -17,7 +17,7 @@ namespace DSSoundStudio.UI
     public partial class SSEQViewer : Form
 	{
 		// Token: 0x0600000E RID: 14 RVA: 0x00004A80 File Offset: 0x00002C80
-		static Thread mainThread;
+		Thread mainThread;
 		public SSEQViewer(SDAT SoundArchive, int SeqIdx)
 		{
 			this.SoundArchive = SoundArchive;
@@ -101,48 +101,11 @@ namespace DSSoundStudio.UI
 			Player player = sndwork.Players[0];
 			player.Volume = SeqInfo.Volume;
 			player.TrackMask = MainForm.audioExport.enabledTracks;
-			byte[] buffer = new byte[MainForm.woutByteSize];
 
-			while (!Stop) {
-				if (Playing) {
-					int bufferedBytes = MainForm.bufferedWaveProvider.BufferedBytes;
-					int bufferLength = MainForm.bufferedWaveProvider.BufferLength;
-
-					if (bufferedBytes < bufferLength) {
-						int remainingBytes = bufferLength - bufferedBytes;
-
-						if (remainingBytes > MainForm.woutByteSize) {
-							sndwork.UpdateExChannel();
-							sndwork.SeqMain(play: true);
-							sndwork.ExChannelMain(doUpdate: true);
-							LibDSSound.Software.Util.CalcRandom();
-
-							if (MainForm.audioExport.waveWriter.Length > MainForm.audioExport.bytesCount) {
-								Stop = true;
-								break;
-							}
-
-							for (int i = 0; i < MainForm.woutSamplesPerIteration; i++) {
-								sndwork.Hardware.Evaluate(256, out var Left, out var Right);
-								buffer[i * 4] = (byte)((uint)Left & 0xFFu);
-								buffer[i * 4 + 1] = (byte)((uint)(Left >> 8) & 0xFFu);
-								buffer[i * 4 + 2] = (byte)((uint)Right & 0xFFu);
-								buffer[i * 4 + 3] = (byte)((uint)(Right >> 8) & 0xFFu);
-							}
-							MainForm.audioExport.waveWriter.Write(buffer, 0, buffer.Length);
-							continue;
-						}
-					}
-				}
-
-				// Nothing to render. instead of spinning, just wait
-				Thread.Sleep(1);
-			}
+			// Not paced. render as fast as the CPU allows
+			MainForm.audioExport.Render(sndwork, () => Stop);
 
 			Console.WriteLine("Recording stopped!");
-            MainForm.audioExport.waveWriter.Dispose();
-
-			MainForm.audioExport.TryResample();
             MainForm.audioExport = null;
         }
 
@@ -154,6 +117,9 @@ namespace DSSoundStudio.UI
 				Playing = false;
             } else {
                 if (Stop) {
+					// The previous thread checks Stop between sleeps. 
+					//  before a new one starts using it, let it finish winding down (it stops the shared output)
+					mainThread?.Join();
                     Stop = false;
 					mainThread = new Thread(SoundThreadMain);
 					mainThread.Start();
@@ -180,7 +146,10 @@ namespace DSSoundStudio.UI
 
             if (aesf.ShowDialog() == DialogResult.OK) {
 				toolStripButtonStop_Click(null, null);
-                MainForm.audioExport = new AudioExportSettings(aesf.samplingRate, aesf.path, MainForm.waveOut.OutputWaveFormat);
+				// wait for playback to actually end first, because stop is cleared again below.
+				// this prevents sleeping through the brief Stop and an undesirable resume alongside the export
+				mainThread?.Join();
+                MainForm.audioExport = new AudioExportSettings(aesf.samplingRate, aesf.path);
 				MainForm.audioExport.setOutWaveLength(aesf.minutes, aesf.seconds);
 				MainForm.audioExport.enabledTracks = aesf.tracks;
 
@@ -191,7 +160,7 @@ namespace DSSoundStudio.UI
 				toolStripButtonPlayPause.Image = Resources.control_pause;
 				Playing = true;
 
-				mainThread.Join(120*1000);
+				mainThread.Join();
 				toolStripButtonStop_Click(null, null);
             }
         }
