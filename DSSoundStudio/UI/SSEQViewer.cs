@@ -100,6 +100,7 @@ namespace DSSoundStudio.UI
 			sndwork.StartSeq(0, Sequence.Data, 0, Bank);
 			Player player = sndwork.Players[0];
 			player.Volume = SeqInfo.Volume;
+			player.TrackMask = MainForm.audioExport.enabledTracks;
 			byte[] buffer = new byte[MainForm.woutByteSize];
 
 			while (!Stop) {
@@ -181,6 +182,7 @@ namespace DSSoundStudio.UI
 				toolStripButtonStop_Click(null, null);
                 MainForm.audioExport = new AudioExportSettings(aesf.samplingRate, aesf.path, MainForm.waveOut.OutputWaveFormat);
 				MainForm.audioExport.setOutWaveLength(aesf.minutes, aesf.seconds);
+				MainForm.audioExport.enabledTracks = aesf.tracks;
 
                 Stop = false;
 				mainThread = new Thread(SoundThreadRecord);

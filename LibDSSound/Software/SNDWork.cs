@@ -479,7 +479,7 @@ public class SNDWork
 				{
 					num2 = 127;
 				}
-				if (!track.Mute && play)
+				if (!track.Mute && (player.TrackMask & (1 << trackIdx)) != 0 && play)
 				{
 					NoteOnCommandProc(track, player, (byte)num2, velocity, (num <= 0) ? (-1) : num);
 				}

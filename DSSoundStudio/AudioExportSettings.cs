@@ -10,7 +10,7 @@ namespace DSSoundStudio {
         public string outWaveWriterPath;
         public int sampleRate;
         public int sampleCount;
-        public ushort enabledTracks;
+        public ushort enabledTracks = ushort.MaxValue;
         public int bytesCount { get; private set; }
 
         public AudioExportSettings(int sampleRate, string path, WaveFormat wf) {

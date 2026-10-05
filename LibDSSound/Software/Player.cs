@@ -40,5 +40,7 @@ namespace LibDSSound.Software
 
 		// Token: 0x0400001D RID: 29
 		public SBNK Bank;
+
+		public ushort TrackMask = ushort.MaxValue;
 	}
 }
