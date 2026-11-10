@@ -148,6 +148,13 @@ public class SNDWork
 		Players[playerNr].Prepared = true;
 	}
 
+	// The player's fader, in decibel units, which the ARM9 computes from the sequence's
+	// volume and its own faders
+	public void SetPlayerVolume(int playerNr, short fader)
+	{
+		Players[playerNr].ExtendedFader = fader;
+	}
+
 	// The player's part of its notes' channel priority
 	public void SetPlayerChannelPriority(int playerNr, int prio)
 	{

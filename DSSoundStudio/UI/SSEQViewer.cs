@@ -53,8 +53,6 @@ namespace DSSoundStudio.UI
 			sndwork.ExChannelInit();
 			sndwork.SeqInit();
 			StartSequence(sndwork);
-			Player player = sndwork.Players[0];
-			player.Volume = SeqInfo.Volume;
 			byte[] buffer = new byte[MainForm.woutByteSize];
 
             while (!Stop) {
@@ -94,11 +92,11 @@ namespace DSSoundStudio.UI
             MainForm.bufferedWaveProvider.ClearBuffer();
         }
 
-		// As the game starts it: the sequence's channel priority and its player's allowed channels
+		// As the game starts it: the sequence's volume and channel priority, and its player's allowed channels
 		private void StartSequence(SNDWork sndwork) {
 			SDAT.INFO.PlayerInfo playerInfo = SeqInfo.PlayerNr < SoundArchive.InfoBlock.PlayerInfos.Entries.Count
 				? SoundArchive.InfoBlock.PlayerInfos[SeqInfo.PlayerNr] : null;
-			SequenceStart.Start(sndwork, 0, Sequence.Data, 0, Bank, SeqInfo.ChannelPriority,
+			SequenceStart.Start(sndwork, 0, Sequence.Data, 0, Bank, SeqInfo.Volume, SeqInfo.ChannelPriority,
 				playerInfo != null ? playerInfo.ChannelAllocationMask : (ushort)0);
 		}
 
@@ -108,7 +106,6 @@ namespace DSSoundStudio.UI
 			sndwork.SeqInit();
 			StartSequence(sndwork);
 			Player player = sndwork.Players[0];
-			player.Volume = SeqInfo.Volume;
 			player.TrackMask = MainForm.audioExport.enabledTracks;
 
 			// Not paced. render as fast as the CPU allows

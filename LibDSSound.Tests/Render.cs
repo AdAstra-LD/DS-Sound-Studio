@@ -47,7 +47,9 @@ namespace LibDSSound.Tests
 			None = 0,
 			ChannelPriority = 1,
 			ChannelMask = 2,
-			All = ChannelPriority | ChannelMask
+			// the volume as the player's fader; without it, the old viewer's write of the main volume register
+			Volume = 4,
+			All = ChannelPriority | ChannelMask | Volume
 		}
 
 		public static StartParts Parts = StartParts.All;
@@ -61,10 +63,14 @@ namespace LibDSSound.Tests
 			SNDWork work = new SNDWork();
 			work.ExChannelInit();
 			work.SeqInit();
-			SequenceStart.Start(work, 0, seq.Data, 0, bank,
+			bool volume = (Parts & StartParts.Volume) != 0;
+			SequenceStart.Start(work, 0, seq.Data, 0, bank, volume ? info.Volume : (byte)127,
 				(Parts & StartParts.ChannelPriority) != 0 ? info.ChannelPriority : (byte)64,
 				(Parts & StartParts.ChannelMask) != 0 ? PlayerChannelMask(sdat, info.PlayerNr) : (ushort)0);
-			work.Players[0].Volume = info.Volume;
+			if (!volume)
+			{
+				work.Players[0].Volume = info.Volume;
+			}
 			return work;
 		}
 
