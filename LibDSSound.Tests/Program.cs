@@ -6,9 +6,10 @@ using LibDSSound.IO;
 namespace LibDSSound.Tests
 {
 	// Console checks for LibDSSound. Each command returns 0 on success.
-	//   baseline SDAT HASHFILE [--check] [--pcm DIR] [--seconds N] [--seqs A,B,...]
+	//   baseline SDAT HASHFILE [--check] [--pcm DIR] [--seconds N] [--seqs A,B,...] [--start PARTS]
 	//       Renders ten sequences (spread over the SDAT, or the listed ones) and writes their PCM hashes, or with
-	//       --check compares them with HASHFILE and lists the ones that differ.
+	//       --check compares them with HASHFILE and lists the ones that differ. --start limits which of the game's
+	//       start-up settings apply (Render.StartParts, comma-separated; default All, as the viewer).
 	//   survey SDAT [--seconds N]
 	//       Every sequence: its INFO parameters, how long it sounds and the most channels it holds at once.
 	internal static class Program
@@ -76,6 +77,7 @@ namespace LibDSSound.Tests
 			bool check = Array.IndexOf(args, "--check") >= 0;
 			string pcmDir = Option(args, "--pcm", null);
 			int frames = Render.FramesFor(double.Parse(Option(args, "--seconds", "60")));
+			Render.Parts = (Render.StartParts)Enum.Parse(typeof(Render.StartParts), Option(args, "--start", "All"));
 			if (pcmDir != null)
 			{
 				Directory.CreateDirectory(pcmDir);
@@ -160,9 +162,10 @@ namespace LibDSSound.Tests
 					maxChannels = Math.Max(maxChannels, active);
 				}
 				string name = sdat.SymbolBlock?.SequenceSymbols?.Entries[seq] ?? ("SEQ_" + seq);
-				Console.WriteLine("{0}\t{1}\tplayer={2}\tcprio={3}\tpprio={4}\tvol={5}\tsounding={6:F1}s\tmaxch={7}",
+				Console.WriteLine("{0}\t{1}\tplayer={2}\tmask={8:X4}\tcprio={3}\tpprio={4}\tvol={5}\tsounding={6:F1}s\tmaxch={7}",
 					seq, name, info.PlayerNr, info.ChannelPriority, info.PlayerPriority, info.Volume,
-					(lastSounding + 1) * (double)Render.SamplesPerFrame / Render.SampleRate, maxChannels);
+					(lastSounding + 1) * (double)Render.SamplesPerFrame / Render.SampleRate, maxChannels,
+					Render.PlayerChannelMask(sdat, info.PlayerNr));
 			}
 			return 0;
 		}

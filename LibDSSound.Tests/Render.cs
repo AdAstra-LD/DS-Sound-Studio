@@ -39,6 +39,19 @@ namespace LibDSSound.Tests
 			return bank;
 		}
 
+		// Which of the game's start-up settings a render applies; All is what the sequence viewer does. The others
+		// isolate one setting, to explain a baseline hash that changed.
+		[Flags]
+		public enum StartParts
+		{
+			None = 0,
+			ChannelPriority = 1,
+			ChannelMask = 2,
+			All = ChannelPriority | ChannelMask
+		}
+
+		public static StartParts Parts = StartParts.All;
+
 		// A sequence of an SDAT started as the sequence viewer starts it.
 		public static SNDWork StartSdatSeq(SDAT sdat, int seqIdx)
 		{
@@ -48,9 +61,18 @@ namespace LibDSSound.Tests
 			SNDWork work = new SNDWork();
 			work.ExChannelInit();
 			work.SeqInit();
-			work.StartSeq(0, seq.Data, 0, bank);
+			SequenceStart.Start(work, 0, seq.Data, 0, bank,
+				(Parts & StartParts.ChannelPriority) != 0 ? info.ChannelPriority : (byte)64,
+				(Parts & StartParts.ChannelMask) != 0 ? PlayerChannelMask(sdat, info.PlayerNr) : (ushort)0);
 			work.Players[0].Volume = info.Volume;
 			return work;
+		}
+
+		public static ushort PlayerChannelMask(SDAT sdat, int playerNr)
+		{
+			SDAT.INFO.PlayerInfo playerInfo = playerNr < sdat.InfoBlock.PlayerInfos.Entries.Count
+				? sdat.InfoBlock.PlayerInfos[playerNr] : null;
+			return playerInfo != null ? playerInfo.ChannelAllocationMask : (ushort)0;
 		}
 
 		// Runs a started engine for a number of frames, hashing the 16-bit stereo PCM and optionally writing it.

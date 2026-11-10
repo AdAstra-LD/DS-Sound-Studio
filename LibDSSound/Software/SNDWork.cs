@@ -100,7 +100,7 @@ public class SNDWork
 		playerStatus = num;
 	}
 
-	private void PrepareSeq(int playerNr, byte[] data, int offset, SBNK bank)
+	public void PrepareSeq(int playerNr, byte[] data, int offset, SBNK bank)
 	{
 		if (Players[playerNr].Active)
 		{
@@ -143,9 +143,33 @@ public class SNDWork
 		playerStatus |= 1 << playerNr;
 	}
 
-	private void StartPreparedSeq(int playerNr)
+	public void StartPreparedSeq(int playerNr)
 	{
 		Players[playerNr].Prepared = true;
+	}
+
+	// The player's part of its notes' channel priority
+	public void SetPlayerChannelPriority(int playerNr, int prio)
+	{
+		Players[playerNr].Priority = (byte)prio;
+	}
+
+	// The channels the player's tracks may take
+	public void SetTrackAllocatableChannel(int playerNr, uint trackBitMask, uint chBitMask)
+	{
+		for (int i = 0; i < 16 && trackBitMask != 0; i++, trackBitMask >>= 1)
+		{
+			if ((trackBitMask & 1) == 0)
+			{
+				continue;
+			}
+			Track playerTrack = GetPlayerTrack(Players[playerNr], i);
+			if (playerTrack != null)
+			{
+				playerTrack.ChannelMask = (ushort)chBitMask;
+				playerTrack.HasChannelMask = true;
+			}
+		}
 	}
 
 	public void StartSeq(int playerNr, byte[] data, int offset, SBNK bank)
